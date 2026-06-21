@@ -89,22 +89,56 @@
 
         <!-- 订单金额 -->
         <el-form-item label="订单金额">
-          <div style="font-size: 16px">
-            <span>商品总额：¥{{ totalAmount.toFixed(2) }}</span>
-            <el-divider direction="vertical" />
-            <span>优惠金额：</span>
-            <el-input-number
-              v-model="form.discount_amount"
-              :min="0"
-              :max="Math.max(totalAmount, 0)"
-              :precision="2"
-              @change="calculateTotal"
-              style="width: 150px; margin: 0 10px"
-            />
-            <el-divider direction="vertical" />
-            <span style="font-weight: bold; color: #f56c6c; font-size: 18px">
-              实付金额：¥{{ finalAmount.toFixed(2) }}
-            </span>
+          <div class="amount-section">
+            <div class="amount-row">
+              <span class="amount-label">商品总额：</span>
+              <span class="amount-value">¥{{ totalAmount.toFixed(2) }}</span>
+            </div>
+            <div class="amount-row">
+              <span class="amount-label">优惠金额：</span>
+              <el-input-number
+                v-model="form.discount_amount"
+                :min="0"
+                :max="Math.max(totalAmount, 0)"
+                :precision="2"
+                @change="onDiscountChange"
+                style="width: 150px"
+              />
+            </div>
+            <div class="amount-row" v-if="memberInfo">
+              <span class="amount-label">积分抵扣：</span>
+              <div class="points-section">
+                <el-switch
+                  v-model="usePoints"
+                  :disabled="!memberInfo.points || maxUsablePoints === 0"
+                  @change="onUsePointsChange"
+                />
+                <span class="points-info" v-if="memberInfo.points">
+                  (可用 {{ memberInfo.points }} 积分，最多抵扣 {{ maxUsablePoints }} 积分，抵 ¥{{ (maxUsablePoints / 100).toFixed(2) }})
+                </span>
+                <span class="points-info text-muted" v-else>
+                  (暂无可用积分)
+                </span>
+              </div>
+            </div>
+            <div class="amount-row" v-if="usePoints && form.points_used > 0">
+              <span class="amount-label">使用积分：</span>
+              <el-input-number
+                v-model="form.points_used"
+                :min="0"
+                :max="maxUsablePoints"
+                :step="100"
+                @change="onPointsChange"
+                style="width: 160px"
+              />
+              <span class="points-discount">
+                抵扣 ¥{{ pointsDiscountAmount.toFixed(2) }}
+              </span>
+            </div>
+            <div class="amount-row final">
+              <span class="amount-label">实付金额：</span>
+              <span class="amount-value final-amount">¥{{ finalAmount.toFixed(2) }}</span>
+            </div>
           </div>
         </el-form-item>
 
@@ -145,16 +179,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { orderApi } from '@/api/modules/order'
 import { productApi } from '@/api/modules/product'
+import { memberApi } from '@/api/modules/member'
+import { authApi } from '@/api/modules/auth'
 
 const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const products = ref([])
+const memberInfo = ref(null)
+const usePoints = ref(false)
+const currentUser = ref(null)
 
 const form = reactive({
   items: [
@@ -164,6 +203,8 @@ const form = reactive({
     },
   ],
   discount_amount: 0,
+  points_used: 0,
+  user_id: null,
   shipping_name: '',
   shipping_phone: '',
   shipping_address: '',
@@ -226,8 +267,18 @@ const totalAmount = computed(() => {
   return total
 })
 
+const maxUsablePoints = computed(() => {
+  const maxByOrder = Math.floor(totalAmount.value * 0.2 * 100)
+  const available = memberInfo.value?.points || 0
+  return Math.min(maxByOrder, available)
+})
+
+const pointsDiscountAmount = computed(() => {
+  return form.points_used / 100
+})
+
 const finalAmount = computed(() => {
-  return Math.max(0, totalAmount.value - (form.discount_amount || 0))
+  return Math.max(0, totalAmount.value - (form.discount_amount || 0) - pointsDiscountAmount.value)
 })
 
 const getProductPrice = (productId) => {
@@ -249,7 +300,6 @@ const handleProductChange = (index) => {
       ElMessage.warning('数量不能超过库存')
     }
   }
-  calculateTotal()
 }
 
 const addItem = () => {
@@ -262,13 +312,38 @@ const addItem = () => {
 const removeItem = (index) => {
   if (form.items.length > 1) {
     form.items.splice(index, 1)
-    calculateTotal()
   }
 }
 
-const calculateTotal = () => {
-  // 触发计算
+const onDiscountChange = () => {
+  if (usePoints.value) {
+    adjustPointsToMax()
+  }
 }
+
+const onUsePointsChange = (val) => {
+  if (val) {
+    adjustPointsToMax()
+  } else {
+    form.points_used = 0
+  }
+}
+
+const onPointsChange = () => {
+  if (form.points_used > maxUsablePoints.value) {
+    form.points_used = maxUsablePoints.value
+  }
+}
+
+const adjustPointsToMax = () => {
+  form.points_used = maxUsablePoints.value
+}
+
+watch(totalAmount, () => {
+  if (usePoints.value && form.points_used > maxUsablePoints.value) {
+    form.points_used = maxUsablePoints.value
+  }
+})
 
 const fetchProducts = async () => {
   try {
@@ -276,6 +351,25 @@ const fetchProducts = async () => {
     products.value = res.data
   } catch (error) {
     ElMessage.error('获取商品列表失败')
+  }
+}
+
+const fetchCurrentUser = async () => {
+  try {
+    const res = await authApi.getMe()
+    currentUser.value = res.data
+    form.user_id = res.data.id
+  } catch (error) {
+    console.warn('获取当前用户失败', error)
+  }
+}
+
+const fetchMemberInfo = async () => {
+  try {
+    const res = await memberApi.getMemberInfo()
+    memberInfo.value = res.data
+  } catch (error) {
+    console.warn('获取会员信息失败', error)
   }
 }
 
@@ -293,6 +387,8 @@ const handleSubmit = async () => {
           quantity: item.quantity,
         })),
         discount_amount: form.discount_amount || 0,
+        points_used: usePoints.value ? form.points_used : 0,
+        user_id: form.user_id,
         shipping_name: form.shipping_name,
         shipping_phone: form.shipping_phone,
         shipping_address: form.shipping_address,
@@ -312,6 +408,8 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   fetchProducts()
+  fetchCurrentUser()
+  fetchMemberInfo()
 })
 </script>
 
@@ -341,5 +439,65 @@ onMounted(() => {
 .card-subtitle {
   font-size: 12px;
   color: #6b7280;
+}
+
+.amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e9f2;
+}
+
+.amount-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.amount-row.final {
+  padding-top: 10px;
+  border-top: 1px dashed #d0d5e0;
+}
+
+.amount-label {
+  color: #6b7280;
+  min-width: 80px;
+}
+
+.amount-value {
+  color: #1f2933;
+  font-weight: 500;
+}
+
+.amount-value.final-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f56c6c;
+}
+
+.points-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.points-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.points-info.text-muted {
+  color: #c0c4cc;
+}
+
+.points-discount {
+  font-size: 14px;
+  color: #67c23a;
+  font-weight: 500;
+  margin-left: 8px;
 }
 </style>

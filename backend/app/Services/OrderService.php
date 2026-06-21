@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Repositories\OrderRepository;
 use App\Services\InventoryService;
+use App\Services\MemberService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -14,17 +15,14 @@ class OrderService
 {
     public function __construct(
         public OrderRepository $repository,
-        private InventoryService $inventoryService
+        private InventoryService $inventoryService,
+        private MemberService $memberService
     ) {
     }
 
-    /**
-     * 创建订单
-     */
     public function create(array $data): Order
     {
         return DB::transaction(function () use ($data) {
-            // 验证商品库存
             $items = $data['items'];
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -36,10 +34,8 @@ class OrderService
                 }
             }
 
-            // 生成订单号
             $orderNo = Order::generateOrderNo();
 
-            // 计算订单金额
             $totalAmount = 0;
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -48,14 +44,31 @@ class OrderService
             }
 
             $discountAmount = $data['discount_amount'] ?? 0;
-            $finalAmount = $totalAmount - $discountAmount;
+            $pointsUsed = (int) ($data['points_used'] ?? 0);
+            $userId = $data['user_id'] ?? null;
 
-            // 创建订单
+            if ($pointsUsed > 0 && !$userId) {
+                throw new \Exception('未登录用户不能使用积分');
+            }
+
+            $pointsDiscountAmount = 0;
+            if ($pointsUsed > 0 && $userId) {
+                $maxAllowedPoints = $this->memberService->calculateMaxPointsDiscount($totalAmount);
+                if ($pointsUsed > $maxAllowedPoints) {
+                    throw new \Exception("积分抵扣超过上限，最多可使用 {$maxAllowedPoints} 积分");
+                }
+                $pointsDiscountAmount = $this->memberService->calculatePointsDiscountAmount($pointsUsed);
+            }
+
+            $finalAmount = max(0, $totalAmount - $discountAmount - $pointsDiscountAmount);
+
             $order = $this->repository->create([
                 'order_no' => $orderNo,
-                'user_id' => $data['user_id'] ?? null,
+                'user_id' => $userId,
                 'total_amount' => $totalAmount,
                 'discount_amount' => $discountAmount,
+                'points_used' => $pointsUsed,
+                'points_discount_amount' => $pointsDiscountAmount,
                 'final_amount' => $finalAmount,
                 'status' => 'pending',
                 'shipping_address' => $data['shipping_address'] ?? null,
@@ -64,7 +77,10 @@ class OrderService
                 'remark' => $data['remark'] ?? null,
             ]);
 
-            // 创建订单项并扣减库存
+            if ($pointsUsed > 0 && $userId) {
+                $this->memberService->usePoints($userId, $pointsUsed, $order);
+            }
+
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $subtotal = $product->price * $item['quantity'];
@@ -79,24 +95,24 @@ class OrderService
                     'subtotal' => $subtotal,
                 ]);
 
-                // 扣减库存
                 $this->inventoryService->decreaseStock($product, $item['quantity'], $order->id, '订单创建');
             }
 
-            Log::info('订单创建成功', ['order_id' => $order->id, 'order_no' => $order->order_no]);
+            Log::info('订单创建成功', [
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'points_used' => $pointsUsed,
+                'points_discount' => $pointsDiscountAmount,
+            ]);
 
             return $order->load('orderItems');
         });
     }
 
-    /**
-     * 更新订单状态
-     */
     public function updateStatus(Order $order, string $status): Order
     {
         $oldStatus = $order->status;
 
-        // 状态流转验证
         $allowedTransitions = [
             'pending' => ['paid', 'cancelled'],
             'paid' => ['shipped', 'cancelled'],
@@ -109,7 +125,6 @@ class OrderService
 
         $updateData = ['status' => $status];
 
-        // 记录状态变更时间
         switch ($status) {
             case 'paid':
                 $updateData['paid_at'] = now();
@@ -119,11 +134,20 @@ class OrderService
                 break;
             case 'completed':
                 $updateData['completed_at'] = now();
+                if ($order->user_id) {
+                    $this->memberService->earnPointsAndUpgrade(
+                        $order->user_id,
+                        (float) $order->final_amount,
+                        $order
+                    );
+                }
                 break;
             case 'cancelled':
                 $updateData['cancelled_at'] = now();
-                // 恢复库存
                 $this->restoreInventory($order);
+                if ($order->user_id && $order->points_used > 0) {
+                    $this->memberService->refundPoints($order->user_id, $order->points_used, $order);
+                }
                 break;
         }
 
@@ -138,9 +162,6 @@ class OrderService
         return $order;
     }
 
-    /**
-     * 恢复库存（订单取消时）
-     */
     private function restoreInventory(Order $order): void
     {
         foreach ($order->orderItems as $item) {

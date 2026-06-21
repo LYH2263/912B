@@ -5,6 +5,40 @@
         <h2 class="page-title">仪表盘总览</h2>
         <p class="page-subtitle">一眼掌握商品、订单与库存的核心数据</p>
       </div>
+      <div v-if="member" class="member-badge-wrapper">
+        <div class="member-badge" :class="`level-${member.level}`">
+          <div class="badge-icon">
+            <el-icon :size="28">
+              <component :is="levelIcon" />
+            </el-icon>
+          </div>
+          <div class="badge-info">
+            <div class="badge-level">{{ member.level_label }}</div>
+            <div class="badge-points">
+              <el-icon :size="14"><Star /></el-icon>
+              {{ member.points }} 积分
+            </div>
+          </div>
+        </div>
+        <div class="member-progress" v-if="member.next_threshold">
+          <div class="progress-label">
+            <span>累计消费 ¥{{ member.total_consumption.toFixed(2) }}</span>
+            <span>距下一级 ¥{{ (member.next_threshold - member.total_consumption).toFixed(2) }}</span>
+          </div>
+          <el-progress
+            :percentage="progressPercentage"
+            :stroke-width="6"
+            :show-text="false"
+            :color="levelColor"
+          />
+        </div>
+        <div class="member-progress" v-else>
+          <div class="progress-label top-level">
+            <el-icon :size="14"><Crown /></el-icon>
+            已达最高等级
+          </div>
+        </div>
+      </div>
     </div>
 
     <el-row :gutter="20" class="stats-row">
@@ -26,8 +60,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Goods, Document, Box } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { Goods, Document, Box, Star, Crown, Medal, Trophy } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api/modules/dashboard'
 
 const stats = ref([
@@ -36,15 +70,51 @@ const stats = ref([
   { title: '库存总价值', value: 0, icon: Box, color: '#E6A23C' },
 ])
 
+const member = ref(null)
+
+const levelIcon = computed(() => {
+  if (!member.value) return Medal
+  const map = {
+    normal: Medal,
+    silver: Trophy,
+    gold: Crown,
+  }
+  return map[member.value.level] || Medal
+})
+
+const levelColor = computed(() => {
+  if (!member.value) return '#909399'
+  const map = {
+    normal: '#909399',
+    silver: '#C0C4CC',
+    gold: '#E6A23C',
+  }
+  return map[member.value.level] || '#909399'
+})
+
+const progressPercentage = computed(() => {
+  if (!member.value || !member.value.next_threshold) return 100
+  const thresholds = { normal: 0, silver: 1000, gold: 5000 }
+  const currentLevel = member.value.level
+  const currentBase = thresholds[currentLevel] || 0
+  const nextThreshold = member.value.next_threshold
+  const progress = (member.value.total_consumption - currentBase) / (nextThreshold - currentBase)
+  return Math.min(Math.round(progress * 100), 100)
+})
+
 onMounted(async () => {
   try {
     const res = await dashboardApi.getSummary()
     const data = res.data
-    
+
     stats.value[0].value = data.products.total
     stats.value[1].value = data.orders.today_count
     const totalValue = Number(data.inventory?.total_value ?? 0)
     stats.value[2].value = `¥${totalValue.toFixed(2)}`
+
+    if (data.member) {
+      member.value = data.member
+    }
   } catch (error) {
     console.error('获取数据失败', error)
   }
@@ -133,5 +203,108 @@ onMounted(async () => {
 .stat-icon {
   color: var(--accent-color);
   opacity: 0.26;
+}
+
+.member-badge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.member-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px 10px 14px;
+  border-radius: 40px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+}
+
+.member-badge.level-normal {
+  background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+}
+
+.member-badge.level-silver {
+  background: linear-gradient(135deg, #ffffff 0%, #e8ecf1 50%, #d4d9e0 100%);
+}
+
+.member-badge.level-gold {
+  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 50%, #ffd54f 100%);
+}
+
+.badge-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.level-normal .badge-icon {
+  color: #909399;
+}
+
+.level-silver .badge-icon {
+  color: #909399;
+}
+
+.level-gold .badge-icon {
+  color: #e6a23c;
+}
+
+.badge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.badge-level {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2933;
+}
+
+.level-gold .badge-level {
+  color: #b8860b;
+}
+
+.badge-points {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.level-gold .badge-points {
+  color: #8b7500;
+}
+
+.member-progress {
+  width: 240px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.progress-label.top-level {
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  color: #e6a23c;
+  font-weight: 500;
 }
 </style>

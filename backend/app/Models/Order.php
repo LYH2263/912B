@@ -16,6 +16,8 @@ class Order extends Model
         'user_id',
         'total_amount',
         'discount_amount',
+        'points_used',
+        'points_discount_amount',
         'final_amount',
         'status',
         'shipping_address',
@@ -31,6 +33,8 @@ class Order extends Model
     protected $casts = [
         'total_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'points_used' => 'integer',
+        'points_discount_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'shipped_at' => 'datetime',

@@ -34,6 +34,10 @@
             <el-icon><Timer /></el-icon>
             <span>秒杀活动</span>
           </el-menu-item>
+          <el-menu-item index="/points">
+            <el-icon><Medal /></el-icon>
+            <span>积分流水</span>
+          </el-menu-item>
         </el-menu>
       </div>
       <div
@@ -81,7 +85,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DataBoard, Goods, Document, Box, Timer } from '@element-plus/icons-vue'
+import { DataBoard, Goods, Document, Box, Timer, Medal } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -82,6 +82,11 @@ const routes = [
         name: 'FlashSalePage',
         component: () => import('../views/flashSale/FlashSalePage.vue'),
       },
+      {
+        path: 'points',
+        name: 'PointLogs',
+        component: () => import('../views/member/PointLogList.vue'),
+      },
     ],
   },
 ]

@@ -20,6 +20,8 @@ class OrderResource extends JsonResource
             'user_id' => $this->user_id,
             'total_amount' => (float) $this->total_amount,
             'discount_amount' => (float) $this->discount_amount,
+            'points_used' => (int) $this->points_used,
+            'points_discount_amount' => (float) $this->points_discount_amount,
             'final_amount' => (float) $this->final_amount,
             'status' => $this->status,
             'shipping_address' => $this->shipping_address,

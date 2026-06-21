@@ -57,6 +57,8 @@ class OrderApiController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'discount_amount' => 'nullable|numeric|min:0',
+            'points_used' => 'nullable|integer|min:0',
+            'user_id' => 'nullable|integer|exists:users,id',
             'shipping_address' => 'nullable|string',
             'shipping_name' => 'nullable|string|max:100',
             'shipping_phone' => 'nullable|string|max:20',

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -32,9 +34,16 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
     ];
 
-    /**
-     * 检查是否为管理员
-     */
+    public function member(): HasOne
+    {
+        return $this->hasOne(Member::class);
+    }
+
+    public function pointLogs(): HasMany
+    {
+        return $this->hasMany(PointLog::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
