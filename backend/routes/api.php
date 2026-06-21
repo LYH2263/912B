@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\PricingRuleApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
+use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\TicketApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -84,5 +85,10 @@ Route::prefix('api')->group(function () {
         Route::put('notification-templates/{template}', [NotificationApiController::class, 'updateTemplate']);
         Route::delete('notification-templates/{template}', [NotificationApiController::class, 'destroyTemplate']);
         Route::put('notification-templates/{template}/toggle', [NotificationApiController::class, 'toggleTemplate']);
+
+        Route::get('reports/options', [ReportApiController::class, 'options']);
+        Route::get('reports/templates', [ReportApiController::class, 'templates']);
+        Route::post('reports/generate', [ReportApiController::class, 'generate']);
+        Route::post('reports/export-csv', [ReportApiController::class, 'exportCsv']);
     });
 });

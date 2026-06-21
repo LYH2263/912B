@@ -157,6 +157,11 @@ const routes = [
         name: 'NotificationTemplates',
         component: () => import('../views/notifications/NotificationTemplateList.vue'),
       },
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: () => import('../views/reports/ReportBuilder.vue'),
+      },
     ],
   },
 ]
