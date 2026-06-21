@@ -62,6 +62,26 @@ const routes = [
         name: 'Inventory',
         component: () => import('../views/inventory/InventoryList.vue'),
       },
+      {
+        path: 'flash-sales',
+        name: 'FlashSales',
+        component: () => import('../views/flashSale/FlashSaleList.vue'),
+      },
+      {
+        path: 'flash-sales/create',
+        name: 'FlashSaleCreate',
+        component: () => import('../views/flashSale/FlashSaleForm.vue'),
+      },
+      {
+        path: 'flash-sales/:id/edit',
+        name: 'FlashSaleEdit',
+        component: () => import('../views/flashSale/FlashSaleForm.vue'),
+      },
+      {
+        path: 'flash-sale',
+        name: 'FlashSalePage',
+        component: () => import('../views/flashSale/FlashSalePage.vue'),
+      },
     ],
   },
 ]

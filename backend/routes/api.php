@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardApiController;
+use App\Http\Controllers\Api\FlashSaleApiController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\ProductApiController;
@@ -41,5 +42,10 @@ Route::prefix('api')->group(function () {
         // 仪表盘 API
         Route::get('dashboard/summary', [DashboardApiController::class, 'summary']);
         Route::get('dashboard/charts', [DashboardApiController::class, 'charts']);
+
+        // 秒杀活动 API
+        Route::apiResource('flash-sales', FlashSaleApiController::class);
+        Route::get('flash-sales-active', [FlashSaleApiController::class, 'activeList']);
+        Route::post('flash-sales/{flashSale}/order', [FlashSaleApiController::class, 'placeOrder']);
     });
 });
