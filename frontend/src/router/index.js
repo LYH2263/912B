@@ -107,6 +107,21 @@ const routes = [
         name: 'PurchaseOrderStockIn',
         component: () => import('../views/purchaseOrder/PurchaseOrderStockIn.vue'),
       },
+      {
+        path: 'pricing-rules',
+        name: 'PricingRules',
+        component: () => import('../views/pricingRules/PricingRuleList.vue'),
+      },
+      {
+        path: 'pricing-rules/create',
+        name: 'PricingRuleCreate',
+        component: () => import('../views/pricingRules/PricingRuleForm.vue'),
+      },
+      {
+        path: 'pricing-rules/:id/edit',
+        name: 'PricingRuleEdit',
+        component: () => import('../views/pricingRules/PricingRuleForm.vue'),
+      },
     ],
   },
 ]

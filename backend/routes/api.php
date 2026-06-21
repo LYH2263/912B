@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\FlashSaleApiController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Api\MemberApiController;
 use App\Http\Controllers\Api\OrderApiController;
+use App\Http\Controllers\Api\PricingRuleApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
 use Illuminate\Support\Facades\Route;
@@ -49,5 +50,8 @@ Route::prefix('api')->group(function () {
         Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
         Route::put('purchase-orders/{purchaseOrder}/submit', [PurchaseOrderApiController::class, 'submit']);
         Route::post('purchase-orders/{purchaseOrder}/stock-in', [PurchaseOrderApiController::class, 'stockIn']);
+
+        Route::apiResource('pricing-rules', PricingRuleApiController::class);
+        Route::put('pricing-rules/{pricingRule}/toggle', [PricingRuleApiController::class, 'toggleActive']);
     });
 });

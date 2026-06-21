@@ -16,9 +16,30 @@
       <el-table :data="products" v-loading="loading" style="width: 100%">
         <el-table-column prop="name" label="商品名称" width="200" />
         <el-table-column prop="sku" label="SKU" width="150" />
-        <el-table-column prop="price" label="价格" width="100">
+        <el-table-column label="价格" width="180">
           <template #default="{ row }">
-            ¥{{ row.price }}
+            <div class="price-wrapper">
+              <div v-if="row.has_discount" class="price-has-discount">
+                <span class="price-current">¥{{ row.final_price }}</span>
+                <span class="price-original">¥{{ row.original_price }}</span>
+                <el-tag size="small" type="danger" effect="light">
+                  -{{ row.discount_percent }}%
+                </el-tag>
+              </div>
+              <div v-else-if="row.has_markup" class="price-has-markup">
+                <span class="price-current">¥{{ row.final_price }}</span>
+                <span class="price-original">¥{{ row.original_price }}</span>
+                <el-tag size="small" type="warning" effect="light">
+                  加价
+                </el-tag>
+              </div>
+              <div v-else>
+                <span class="price-current">¥{{ row.original_price }}</span>
+              </div>
+            </div>
+            <div v-if="row.applied_rule_name" class="applied-rule-name">
+              规则：{{ row.applied_rule_name }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="stock_quantity" label="库存" width="100" />
@@ -156,5 +177,42 @@ onMounted(() => {
 .card-subtitle {
   font-size: 12px;
   color: #6b7280;
+}
+
+.price-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-current {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.price-has-markup .price-current {
+  color: #f59e0b;
+}
+
+.price-original {
+  font-size: 12px;
+  color: #9ca3af;
+  text-decoration: line-through;
+  margin-left: 6px;
+}
+
+.price-has-discount,
+.price-has-markup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.applied-rule-name {
+  font-size: 11px;
+  color: #6366f1;
+  margin-top: 2px;
 }
 </style>

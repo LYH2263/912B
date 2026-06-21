@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Repositories\OrderRepository;
 use App\Services\InventoryService;
 use App\Services\MemberService;
+use App\Services\PricingEngineService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -16,7 +17,8 @@ class OrderService
     public function __construct(
         public OrderRepository $repository,
         private InventoryService $inventoryService,
-        private MemberService $memberService
+        private MemberService $memberService,
+        private PricingEngineService $pricingEngine
     ) {
     }
 
@@ -39,7 +41,8 @@ class OrderService
             $totalAmount = 0;
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                $subtotal = $product->price * $item['quantity'];
+                $pricing = $this->pricingEngine->calculate($product);
+                $subtotal = $pricing['final_price'] * $item['quantity'];
                 $totalAmount += $subtotal;
             }
 
@@ -83,14 +86,15 @@ class OrderService
 
             foreach ($items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-                $subtotal = $product->price * $item['quantity'];
+                $pricing = $this->pricingEngine->calculate($product);
+                $subtotal = $pricing['final_price'] * $item['quantity'];
 
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'product_sku' => $product->sku,
-                    'product_price' => $product->price,
+                    'product_price' => $pricing['final_price'],
                     'quantity' => $item['quantity'],
                     'subtotal' => $subtotal,
                 ]);

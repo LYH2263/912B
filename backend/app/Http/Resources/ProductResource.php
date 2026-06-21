@@ -2,18 +2,16 @@
 
 namespace App\Http\Resources;
 
+use App\Services\PricingEngineService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
+        $pricing = app(PricingEngineService::class)->calculate($this->resource);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -26,7 +24,15 @@ class ProductResource extends JsonResource
                 ];
             }),
             'description' => $this->description,
-            'price' => (float) $this->price,
+            'original_price' => $pricing['original_price'],
+            'price' => $pricing['final_price'],
+            'final_price' => $pricing['final_price'],
+            'has_discount' => $pricing['has_discount'],
+            'has_markup' => $pricing['has_markup'],
+            'discount_amount' => $pricing['discount_amount'],
+            'discount_percent' => $pricing['discount_percent'],
+            'applied_rule_id' => $pricing['applied_rule_id'],
+            'applied_rule_name' => $pricing['applied_rule_name'],
             'cost_price' => $this->cost_price ? (float) $this->cost_price : null,
             'image' => $this->image,
             'images' => $this->images,
