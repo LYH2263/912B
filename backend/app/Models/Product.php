@@ -66,6 +66,14 @@ class Product extends Model
     }
 
     /**
+     * 质检记录
+     */
+    public function qualityInspections(): HasMany
+    {
+        return $this->hasMany(QualityInspection::class);
+    }
+
+    /**
      * 检查库存是否充足
      */
     public function hasEnoughStock(int $quantity): bool

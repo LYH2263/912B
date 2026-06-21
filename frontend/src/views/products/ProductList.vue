@@ -50,8 +50,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="300">
           <template #default="{ row }">
+            <el-button size="small" @click="handleViewQualityInspections(row)">质检记录</el-button>
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -69,6 +70,63 @@
         style="margin-top: 20px; justify-content: flex-end;"
       />
     </el-card>
+
+    <el-dialog v-model="qualityVisible" :title="`${currentProduct?.name || ''} - 历史质检记录`" width="900px" top="5vh">
+      <el-table :data="qualityInspections" v-loading="qualityLoading" style="width: 100%">
+        <el-table-column prop="batch_no" label="批次号" width="180" />
+        <el-table-column label="关联采购单" width="180">
+          <template #default="{ row }">
+            <span v-if="row.purchase_order">
+              {{ row.purchase_order.purchase_order_no }}
+            </span>
+            <span v-else style="color: #9ca3af">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="qualified_quantity" label="合格数量" width="100" align="center">
+          <template #default="{ row }">
+            <span style="color: #67c23a; font-weight: 500">{{ row.qualified_quantity }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="unqualified_quantity" label="不合格数量" width="100" align="center">
+          <template #default="{ row }">
+            <span :style="{ color: row.unqualified_quantity > 0 ? '#f56c6c' : '', fontWeight: 500 }">
+              {{ row.unqualified_quantity }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="total_quantity" label="总数" width="80" align="center" />
+        <el-table-column prop="pass_rate" label="合格率" width="120" align="center">
+          <template #default="{ row }">
+            <el-progress
+              :percentage="row.pass_rate"
+              :color="row.pass_rate >= 95 ? '#67c23a' : row.pass_rate >= 80 ? '#e6a23c' : '#f56c6c"
+              :stroke-width="8"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="inspector" label="质检员" width="100" />
+        <el-table-column prop="inspection_date" label="质检日期" width="120" />
+        <el-table-column label="不合格原因" min-width="150">
+          <template #default="{ row }">
+            <span v-if="row.unqualified_reason">{{ row.unqualified_reason }}</span>
+            <span v-else style="color: #9ca3af">-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-model:current-page="qualityPage"
+        v-model:page-size="qualityPageSize"
+        :total="qualityTotal"
+        :page-sizes="[5, 10, 20]"
+        layout="total, prev, pager, next"
+        @size-change="handleQualityPageChange"
+        @current-change="handleQualityPageChange"
+        style="margin-top: 16px; justify-content: flex-end"
+      />
+      <template #footer>
+        <el-button @click="qualityVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -77,6 +135,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { productApi } from '@/api/modules/product'
+import { qualityInspectionApi } from '@/api/modules/qualityInspection'
 
 const router = useRouter()
 const products = ref([])
@@ -84,6 +143,14 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+const qualityVisible = ref(false)
+const qualityLoading = ref(false)
+const qualityInspections = ref([])
+const qualityPage = ref(1)
+const qualityPageSize = ref(5)
+const qualityTotal = ref(0)
+const currentProduct = ref(null)
 
 const getStatusType = (status) => {
   const map = {
@@ -144,6 +211,35 @@ const handleSizeChange = () => {
 
 const handleCurrentChange = () => {
   fetchProducts()
+}
+
+const handleViewQualityInspections = async (row) => {
+  currentProduct.value = row
+  qualityPage.value = 1
+  qualityVisible.value = true
+  await fetchQualityInspections(row.id)
+}
+
+const fetchQualityInspections = async (productId) => {
+  qualityLoading.value = true
+  try {
+    const res = await qualityInspectionApi.getProductQualityInspections(productId, {
+      page: qualityPage.value,
+      per_page: qualityPageSize.value,
+    })
+    qualityInspections.value = res.data
+    qualityTotal.value = res.meta.total
+  } catch (error) {
+    ElMessage.error('获取质检记录失败')
+  } finally {
+    qualityLoading.value = false
+  }
+}
+
+const handleQualityPageChange = () => {
+  if (currentProduct.value) {
+    fetchQualityInspections(currentProduct.value.id)
+  }
 }
 
 onMounted(() => {

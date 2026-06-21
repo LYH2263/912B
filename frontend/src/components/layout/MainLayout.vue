@@ -66,6 +66,10 @@
             <el-icon><DataLine /></el-icon>
             <span>销售报表</span>
           </el-menu-item>
+          <el-menu-item index="/quality-inspections">
+            <el-icon><Finished /></el-icon>
+            <span>质检记录</span>
+          </el-menu-item>
         </el-menu>
       </div>
       <div
@@ -165,7 +169,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DataBoard, Goods, Gift, Document, Box, Timer, Medal, ShoppingCart, PriceTag, ChatDotRound, Bell, Memo, Van, Warning, DataLine } from '@element-plus/icons-vue'
+import { DataBoard, Goods, Gift, Document, Box, Timer, Medal, ShoppingCart, PriceTag, ChatDotRound, Bell, Memo, Van, Warning, DataLine, Finished } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { notificationApi } from '@/api/modules/notification'

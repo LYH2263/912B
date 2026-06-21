@@ -162,6 +162,21 @@ const routes = [
         name: 'Reports',
         component: () => import('../views/reports/ReportBuilder.vue'),
       },
+      {
+        path: 'quality-inspections',
+        name: 'QualityInspections',
+        component: () => import('../views/qualityInspection/QualityInspectionList.vue'),
+      },
+      {
+        path: 'quality-inspections/create',
+        name: 'QualityInspectionCreate',
+        component: () => import('../views/qualityInspection/QualityInspectionForm.vue'),
+      },
+      {
+        path: 'quality-inspections/:id/edit',
+        name: 'QualityInspectionEdit',
+        component: () => import('../views/qualityInspection/QualityInspectionForm.vue'),
+      },
     ],
   },
 ]

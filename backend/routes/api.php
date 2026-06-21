@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\PricingRuleApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
+use App\Http\Controllers\Api\QualityInspectionApiController;
 use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\TicketApiController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,9 @@ Route::prefix('api')->group(function () {
 
         Route::apiResource('products', ProductApiController::class);
         Route::get('products/{product}/inventory', [ProductApiController::class, 'show']);
+        Route::get('products/{product}/quality-inspections', [QualityInspectionApiController::class, 'productInspections']);
+
+        Route::apiResource('quality-inspections', QualityInspectionApiController::class);
 
         Route::apiResource('bundles', BundleApiController::class);
         Route::put('bundles/{bundle}/toggle', [BundleApiController::class, 'toggleActive']);
