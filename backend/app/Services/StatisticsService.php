@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Member;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,11 @@ class StatisticsService
                 'total_value' => $totalInventoryValue,
             ],
             'member' => $member,
+            'tickets' => [
+                'pending' => Ticket::where('status', Ticket::STATUS_PENDING)->count(),
+                'processing' => Ticket::where('status', Ticket::STATUS_PROCESSING)->count(),
+                'total' => Ticket::count(),
+            ],
         ];
     }
 

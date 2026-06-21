@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\PricingRuleApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
+use App\Http\Controllers\Api\TicketApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,5 +61,13 @@ Route::prefix('api')->group(function () {
 
         Route::apiResource('pricing-rules', PricingRuleApiController::class);
         Route::put('pricing-rules/{pricingRule}/toggle', [PricingRuleApiController::class, 'toggleActive']);
+
+        Route::get('tickets-kanban', [TicketApiController::class, 'kanban']);
+        Route::get('tickets-assignees', [TicketApiController::class, 'assignees']);
+        Route::get('tickets-counts', [TicketApiController::class, 'counts']);
+        Route::apiResource('tickets', TicketApiController::class);
+        Route::put('tickets/{ticket}/status', [TicketApiController::class, 'updateStatus']);
+        Route::put('tickets/{ticket}/assign', [TicketApiController::class, 'assign']);
+        Route::post('tickets/{ticket}/comments', [TicketApiController::class, 'addComment']);
     });
 });

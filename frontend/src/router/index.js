@@ -137,6 +137,16 @@ const routes = [
         name: 'PricingRuleEdit',
         component: () => import('../views/pricingRules/PricingRuleForm.vue'),
       },
+      {
+        path: 'tickets',
+        name: 'Tickets',
+        component: () => import('../views/tickets/TicketKanban.vue'),
+      },
+      {
+        path: 'tickets/:id',
+        name: 'TicketDetail',
+        component: () => import('../views/tickets/TicketDetail.vue'),
+      },
     ],
   },
 ]

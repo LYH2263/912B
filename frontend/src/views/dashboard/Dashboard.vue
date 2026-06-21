@@ -42,8 +42,12 @@
     </div>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="8" v-for="stat in stats" :key="stat.title">
-        <el-card class="stat-card" :style="{ '--accent-color': stat.color }">
+      <el-col :span="6" v-for="stat in stats" :key="stat.title">
+        <el-card
+          class="stat-card"
+          :style="{ '--accent-color': stat.color, cursor: stat.clickable ? 'pointer' : 'default' }"
+          @click="stat.clickable && $router.push(stat.path)"
+        >
           <div class="stat-content">
             <div class="stat-text">
               <div class="stat-label">{{ stat.title }}</div>
@@ -61,13 +65,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Goods, Document, Box, Star, Crown, Medal, Trophy } from '@element-plus/icons-vue'
+import { Goods, Document, Box, Star, Crown, Medal, Trophy, ChatDotRound } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api/modules/dashboard'
 
 const stats = ref([
   { title: '商品总数', value: 0, icon: Goods, color: '#409EFF' },
   { title: '今日订单', value: 0, icon: Document, color: '#67C23A' },
   { title: '库存总价值', value: 0, icon: Box, color: '#E6A23C' },
+  { title: '待处理工单', value: 0, icon: ChatDotRound, color: '#F56C6C', clickable: true, path: '/tickets' },
 ])
 
 const member = ref(null)
@@ -111,6 +116,7 @@ onMounted(async () => {
     stats.value[1].value = data.orders.today_count
     const totalValue = Number(data.inventory?.total_value ?? 0)
     stats.value[2].value = `¥${totalValue.toFixed(2)}`
+    stats.value[3].value = data.tickets?.pending ?? 0
 
     if (data.member) {
       member.value = data.member
