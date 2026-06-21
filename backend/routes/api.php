@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\FlashSaleApiController;
 use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Api\MemberApiController;
+use App\Http\Controllers\Api\NotificationApiController;
 use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\PricingRuleApiController;
 use App\Http\Controllers\Api\ProductApiController;
@@ -69,5 +70,19 @@ Route::prefix('api')->group(function () {
         Route::put('tickets/{ticket}/status', [TicketApiController::class, 'updateStatus']);
         Route::put('tickets/{ticket}/assign', [TicketApiController::class, 'assign']);
         Route::post('tickets/{ticket}/comments', [TicketApiController::class, 'addComment']);
+
+        Route::get('notifications', [NotificationApiController::class, 'index']);
+        Route::get('notifications/unread-count', [NotificationApiController::class, 'unreadCount']);
+        Route::get('notifications/{notification}', [NotificationApiController::class, 'show']);
+        Route::put('notifications/{notification}/read', [NotificationApiController::class, 'markAsRead']);
+        Route::post('notifications/mark-all-read', [NotificationApiController::class, 'markAllAsRead']);
+
+        Route::get('notification-templates', [NotificationApiController::class, 'templates']);
+        Route::get('notification-templates/all', [NotificationApiController::class, 'allTemplates']);
+        Route::get('notification-templates/{template}', [NotificationApiController::class, 'showTemplate']);
+        Route::post('notification-templates', [NotificationApiController::class, 'storeTemplate']);
+        Route::put('notification-templates/{template}', [NotificationApiController::class, 'updateTemplate']);
+        Route::delete('notification-templates/{template}', [NotificationApiController::class, 'destroyTemplate']);
+        Route::put('notification-templates/{template}/toggle', [NotificationApiController::class, 'toggleTemplate']);
     });
 });

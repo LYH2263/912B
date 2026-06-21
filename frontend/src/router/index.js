@@ -147,6 +147,16 @@ const routes = [
         name: 'TicketDetail',
         component: () => import('../views/tickets/TicketDetail.vue'),
       },
+      {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('../views/notifications/NotificationList.vue'),
+      },
+      {
+        path: 'notification-templates',
+        name: 'NotificationTemplates',
+        component: () => import('../views/notifications/NotificationTemplateList.vue'),
+      },
     ],
   },
 ]

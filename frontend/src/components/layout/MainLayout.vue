@@ -54,6 +54,14 @@
             <el-icon><ChatDotRound /></el-icon>
             <span>售后工单</span>
           </el-menu-item>
+          <el-menu-item index="/notifications">
+            <el-icon><Bell /></el-icon>
+            <span>消息中心</span>
+          </el-menu-item>
+          <el-menu-item index="/notification-templates">
+            <el-icon><Memo /></el-icon>
+            <span>消息模板</span>
+          </el-menu-item>
         </el-menu>
       </div>
       <div
@@ -90,6 +98,58 @@
         <div class="header-left">
           <span class="header-breadcrumb">控制台</span>
         </div>
+        <div class="header-right">
+          <el-popover
+            placement="bottom-end"
+            :width="360"
+            trigger="click"
+            popper-class="notification-popover"
+          >
+            <template #reference>
+              <div class="notification-bell" @click="fetchUnreadCount">
+                <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notification-badge">
+                  <el-icon class="bell-icon"><Bell /></el-icon>
+                </el-badge>
+              </div>
+            </template>
+            <div class="notification-popover-content">
+              <div class="popover-header">
+                <span class="popover-title">消息通知</span>
+                <el-button type="primary" link @click="goToNotifications">查看全部</el-button>
+              </div>
+              <el-divider style="margin: 8px 0" />
+              <div v-loading="popoverLoading" class="popover-list">
+                <div v-if="recentNotifications.length === 0" class="empty-state">
+                  <el-empty description="暂无消息" :image-size="60" />
+                </div>
+                <div
+                  v-for="item in recentNotifications"
+                  :key="item.id"
+                  class="popover-item"
+                  :class="{ unread: !item.is_read }"
+                  @click="handleNotificationClick(item)"
+                >
+                  <div class="item-icon" :class="getTypeClass(item.type)">
+                    <el-icon v-if="item.type === 'order_shipped'"><Van /></el-icon>
+                    <el-icon v-else-if="item.type === 'stock_warning'"><Warning /></el-icon>
+                    <el-icon v-else><Bell /></el-icon>
+                  </div>
+                  <div class="item-content">
+                    <div class="item-title">{{ item.title }}</div>
+                    <div class="item-time">{{ formatTime(item.created_at) }}</div>
+                  </div>
+                  <el-tag v-if="!item.is_read" type="danger" size="small" effect="light">新</el-tag>
+                </div>
+              </div>
+              <el-divider style="margin: 8px 0" />
+              <div class="popover-footer">
+                <el-button type="primary" plain size="small" @click="handleMarkAllRead" :disabled="unreadCount === 0">
+                  全部已读
+                </el-button>
+              </div>
+            </div>
+          </el-popover>
+        </div>
       </el-header>
       <el-main class="main-content">
         <router-view />
@@ -99,17 +159,31 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DataBoard, Goods, Gift, Document, Box, Timer, Medal, ShoppingCart, PriceTag, ChatDotRound } from '@element-plus/icons-vue'
+import { DataBoard, Goods, Gift, Document, Box, Timer, Medal, ShoppingCart, PriceTag, ChatDotRound, Bell, Memo, Van, Warning } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
+import { notificationApi } from '@/api/modules/notification'
 
 const route = useRoute()
 const router = useRouter()
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const path = route.path
+  if (path.startsWith('/notification-templates')) return '/notification-templates'
+  if (path.startsWith('/notifications')) return '/notifications'
+  return path
+})
 
 const currentUser = ref(null)
 const showLogout = ref(false)
+
+const unreadCount = ref(0)
+const recentNotifications = ref([])
+const popoverLoading = ref(false)
+
+let unreadTimer = null
 
 const displayName = computed(() => {
   if (currentUser.value?.email) return currentUser.value.email
@@ -123,12 +197,90 @@ const avatarInitial = computed(() => {
   return source.charAt(0).toUpperCase()
 })
 
+const fetchUnreadCount = async () => {
+  try {
+    const res = await notificationApi.getUnreadCount()
+    unreadCount.value = res.data.unread_count || 0
+  } catch (e) {
+    console.error('获取未读数失败', e)
+  }
+}
+
+const fetchRecentNotifications = async () => {
+  popoverLoading.value = true
+  try {
+    const res = await notificationApi.getNotifications({ per_page: 5 })
+    recentNotifications.value = res.data || []
+  } catch (e) {
+    console.error('获取最近消息失败', e)
+  } finally {
+    popoverLoading.value = false
+  }
+}
+
+const getTypeClass = (type) => {
+  const map = {
+    order_shipped: 'type-shipped',
+    stock_warning: 'type-warning',
+    system: 'type-system',
+  }
+  return map[type] || 'type-system'
+}
+
+const formatTime = (time) => {
+  return dayjs(time).format('MM-DD HH:mm')
+}
+
+const goToNotifications = () => {
+  router.push('/notifications')
+}
+
+const handleNotificationClick = async (item) => {
+  if (!item.is_read) {
+    try {
+      await notificationApi.markAsRead(item.id)
+      item.is_read = true
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    } catch (e) {
+      console.error('标记已读失败', e)
+    }
+  }
+  router.push('/notifications')
+}
+
+const handleMarkAllRead = async () => {
+  try {
+    await notificationApi.markAllAsRead()
+    ElMessage.success('已全部标记为已读')
+    unreadCount.value = 0
+    recentNotifications.value.forEach(item => {
+      item.is_read = true
+    })
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
+}
+
 onMounted(() => {
   try {
     const raw = localStorage.getItem('user')
     currentUser.value = raw ? JSON.parse(raw) : null
   } catch {
     currentUser.value = null
+  }
+
+  if (localStorage.getItem('token')) {
+    fetchUnreadCount()
+    fetchRecentNotifications()
+    unreadTimer = setInterval(() => {
+      fetchUnreadCount()
+    }, 30000)
+  }
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    clearInterval(unreadTimer)
   }
 })
 
@@ -141,6 +293,9 @@ const handleLogout = async () => {
   } finally {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    if (unreadTimer) {
+      clearInterval(unreadTimer)
+    }
     router.push('/login')
   }
 }
@@ -177,6 +332,7 @@ const handleLogout = async () => {
   display: flex;
   flex-direction: column;
   padding-top: 10px;
+  overflow-y: auto;
 }
 
 .logo-icon {
@@ -328,6 +484,29 @@ const handleLogout = async () => {
   align-items: center;
 }
 
+.notification-bell {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.notification-bell:hover {
+  background-color: #f3f4ff;
+}
+
+.bell-icon {
+  font-size: 20px;
+  color: #6b7280;
+}
+
+.notification-badge :deep(.el-badge__content) {
+  font-size: 10px;
+  height: 16px;
+  min-width: 16px;
+  line-height: 16px;
+}
+
 .user-info {
   cursor: pointer;
   display: flex;
@@ -348,5 +527,114 @@ const handleLogout = async () => {
   box-shadow: 0 20px 40px rgba(148, 163, 184, 0.45);
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(255, 255, 255, 0.96);
+}
+</style>
+
+<style>
+.notification-popover {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.notification-popover-content {
+  padding: 0;
+}
+
+.popover-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.popover-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+.empty-state {
+  padding: 24px 0;
+}
+
+.popover-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.popover-item:hover {
+  background-color: #f9fafb;
+}
+
+.popover-item.unread {
+  background-color: #eff6ff;
+}
+
+.popover-item.unread:hover {
+  background-color: #dbeafe;
+}
+
+.item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 14px;
+}
+
+.item-icon.type-shipped {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.item-icon.type-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.item-icon.type-system {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+.item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title {
+  font-size: 13px;
+  color: #111827;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.item-time {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.popover-footer {
+  padding: 8px 16px 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

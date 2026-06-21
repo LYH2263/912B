@@ -4,11 +4,16 @@ namespace App\Services;
 
 use App\Models\InventoryLog;
 use App\Models\Product;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class InventoryService
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+    }
     /**
      * 增加库存（入库）
      */
@@ -80,6 +85,9 @@ class InventoryService
                 'after' => $afterQuantity,
             ]);
 
+            $product->refresh();
+            $this->notificationService->checkAndSendStockWarning($product);
+
             return $log;
         });
     }
@@ -122,6 +130,9 @@ class InventoryService
                 'before' => $beforeQuantity,
                 'after' => $newQuantity,
             ]);
+
+            $product->refresh();
+            $this->notificationService->checkAndSendStockWarning($product);
 
             return $log;
         });

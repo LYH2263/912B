@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Repositories\OrderRepository;
 use App\Services\InventoryService;
 use App\Services\MemberService;
+use App\Services\NotificationService;
 use App\Services\PricingEngineService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,8 @@ class OrderService
         public OrderRepository $repository,
         private InventoryService $inventoryService,
         private MemberService $memberService,
-        private PricingEngineService $pricingEngine
+        private PricingEngineService $pricingEngine,
+        private NotificationService $notificationService
     ) {
     }
 
@@ -221,6 +223,11 @@ class OrderService
         }
 
         $order = $this->repository->update($order, $updateData);
+
+        if ($status === 'shipped') {
+            $order->load('orderItems');
+            $this->notificationService->sendOrderShippedNotification($order);
+        }
 
         Log::info('订单状态更新', [
             'order_id' => $order->id,
