@@ -46,15 +46,36 @@
         <div style="margin-top: 20px">
           <h3>订单商品</h3>
           <el-table :data="order.order_items" border>
-            <el-table-column prop="product_name" label="商品名称" />
-            <el-table-column prop="product_sku" label="SKU" width="150" />
-            <el-table-column prop="product_price" label="单价" width="120">
+            <el-table-column label="类型" width="90">
+              <template #default="{ row }">
+                <el-tag v-if="row.item_type === 'bundle'" type="warning" effect="light">套餐</el-tag>
+                <el-tag v-else type="info" effect="light">商品</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="商品/套餐名称">
+              <template #default="{ row }">
+                <div class="item-name-wrap">
+                  <span class="item-name">{{ row.product_name }}</span>
+                  <span class="item-sku-meta">{{ row.product_sku }}</span>
+                </div>
+                <div v-if="row.item_type === 'bundle' && row.bundle_detail && row.bundle_detail.length > 0" class="bundle-subitems">
+                  <div v-for="(sub, idx) in row.bundle_detail" :key="idx" class="bundle-subitem-row">
+                    <span class="subitem-dot">└</span>
+                    <span class="subitem-name">{{ sub.product_name }}</span>
+                    <span class="subitem-sku">({{ sub.product_sku }})</span>
+                    <span class="subitem-price">¥{{ sub.product_price.toFixed(2) }}</span>
+                    <span class="subitem-qty">× {{ sub.quantity }}</span>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="单价" width="120">
               <template #default="{ row }">
                 ¥{{ row.product_price.toFixed(2) }}
               </template>
             </el-table-column>
             <el-table-column prop="quantity" label="数量" width="100" />
-            <el-table-column prop="subtotal" label="小计" width="120">
+            <el-table-column label="小计" width="120">
               <template #default="{ row }">
                 ¥{{ row.subtotal.toFixed(2) }}
               </template>
@@ -491,5 +512,70 @@ onMounted(() => {
   border-top: 1px dashed #d1d5db;
   font-weight: 600;
   color: #111827;
+}
+
+.item-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.item-sku-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.bundle-subitems {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #fff8f0;
+  border: 1px dashed #fde68a;
+  border-radius: 6px;
+}
+
+.bundle-subitem-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 3px 0;
+  color: #78350f;
+}
+
+.subitem-dot {
+  color: #d97706;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.subitem-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subitem-sku {
+  color: #a16207;
+  flex-shrink: 0;
+}
+
+.subitem-price {
+  color: #b45309;
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
+}
+
+.subitem-qty {
+  color: #92400e;
+  flex-shrink: 0;
+  min-width: 48px;
+  text-align: right;
 }
 </style>

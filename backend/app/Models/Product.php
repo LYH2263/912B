@@ -52,6 +52,11 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function bundleItems(): HasMany
+    {
+        return $this->hasMany(BundleItem::class);
+    }
+
     /**
      * 库存变动记录
      */

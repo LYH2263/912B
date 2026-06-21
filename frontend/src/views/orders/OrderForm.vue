@@ -5,7 +5,7 @@
         <div class="card-header">
           <div class="card-header-text">
             <span class="card-title">创建订单</span>
-            <span class="card-subtitle">选择商品、设置数量并填写收货信息</span>
+            <span class="card-subtitle">选择商品、套餐、设置数量并填写收货信息</span>
           </div>
           <el-button @click="$router.back()" round>返回</el-button>
         </div>
@@ -17,82 +17,199 @@
         :rules="rules"
         label-width="120px"
       >
-        <!-- 订单商品 -->
-        <el-form-item label="订单商品" prop="items">
-          <el-table :data="form.items" border style="width: 100%">
-            <el-table-column label="商品" width="300">
-              <template #default="{ row, $index }">
-                <el-select
-                  v-model="row.product_id"
-                  placeholder="请选择商品"
-                  filterable
-                  @change="handleProductChange($index)"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="product in availableProducts"
-                    :key="product.id"
-                    :label="`${product.name} (${product.sku}) - 库存: ${product.stock_quantity}`"
-                    :value="product.id"
-                    :disabled="product.stock_quantity === 0 || product.status !== 'active'"
-                  />
-                </el-select>
-              </template>
-            </el-table-column>
-            <el-table-column label="单价" width="120">
-              <template #default="{ row }">
-                <span v-if="row.product_id">
-                  ¥{{ getProductPrice(row.product_id).toFixed(2) }}
-                </span>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="数量" width="150">
-              <template #default="{ row, $index }">
-                <el-input-number
-                  v-model="row.quantity"
-                  :min="1"
-                  :max="row.product_id ? Math.max(getProductStock(row.product_id), 1) : 999999"
-                  @change="calculateTotal"
-                />
-              </template>
-            </el-table-column>
-            <el-table-column label="小计" width="120">
-              <template #default="{ row }">
-                <span v-if="row.product_id && row.quantity">
-                  ¥{{ (getProductPrice(row.product_id) * row.quantity).toFixed(2) }}
-                </span>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="{ $index }">
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="removeItem($index)"
-                  :disabled="form.items.length === 1"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-button
-            type="primary"
-            @click="addItem"
-            style="margin-top: 10px"
-          >
-            添加商品
-          </el-button>
-        </el-form-item>
+        <el-tabs v-model="activeTab">
+          <el-tab-pane label="商品" name="products">
+            <el-form-item label="订单商品" prop="items">
+              <el-table :data="form.items" border style="width: 100%">
+                <el-table-column label="商品" width="300">
+                  <template #default="{ row, $index }">
+                    <el-select
+                      v-model="row.product_id"
+                      placeholder="请选择商品"
+                      filterable
+                      @change="handleProductChange($index)"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="product in availableProducts"
+                        :key="product.id"
+                        :label="`${product.name} (${product.sku}) - 库存: ${product.stock_quantity}`"
+                        :value="product.id"
+                        :disabled="product.stock_quantity === 0 || product.status !== 'active'"
+                      />
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="单价" width="120">
+                  <template #default="{ row }">
+                    <span v-if="row.product_id">
+                      ¥{{ getProductPrice(row.product_id).toFixed(2) }}
+                    </span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="数量" width="150">
+                  <template #default="{ row, $index }">
+                    <el-input-number
+                      v-model="row.quantity"
+                      :min="1"
+                      :max="row.product_id ? Math.max(getProductStock(row.product_id), 1) : 999999"
+                      @change="calculateTotal"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column label="小计" width="120">
+                  <template #default="{ row }">
+                    <span v-if="row.product_id && row.quantity">
+                      ¥{{ (getProductPrice(row.product_id) * row.quantity).toFixed(2) }}
+                    </span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="100">
+                  <template #default="{ $index }">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      @click="removeItem($index)"
+                      :disabled="form.items.length === 1"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-button
+                type="primary"
+                @click="addItem"
+                style="margin-top: 10px"
+              >
+                添加商品
+              </el-button>
+            </el-form-item>
+          </el-tab-pane>
 
-        <!-- 订单金额 -->
+          <el-tab-pane label="套餐" name="bundles">
+            <el-form-item label="订单套餐" prop="bundle_items">
+              <el-table :data="form.bundle_items" border style="width: 100%">
+                <el-table-column label="套餐" width="340">
+                  <template #default="{ row, $index }">
+                    <el-select
+                      v-model="row.bundle_id"
+                      placeholder="请选择套餐"
+                      filterable
+                      @change="handleBundleChange($index)"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="bundle in availableBundles"
+                        :key="bundle.id"
+                        :label="`${bundle.name} (${bundle.sku}) - ${bundle.item_count}件商品`"
+                        :value="bundle.id"
+                        :disabled="!bundle.can_purchase"
+                      />
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="套餐价" width="120">
+                  <template #default="{ row }">
+                    <span v-if="row.bundle_id" class="bundle-price">
+                      ¥{{ getBundlePrice(row.bundle_id).toFixed(2) }}
+                    </span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="原价" width="120">
+                  <template #default="{ row }">
+                    <span v-if="row.bundle_id" class="bundle-original">
+                      ¥{{ getBundleOriginalTotal(row.bundle_id).toFixed(2) }}
+                    </span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="数量" width="150">
+                  <template #default="{ row, $index }">
+                    <el-input-number
+                      v-model="row.quantity"
+                      :min="1"
+                      :max="row.bundle_id ? Math.max(getBundleMaxQty(row.bundle_id), 1) : 999999"
+                      @change="calculateTotal"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column label="小计" width="120">
+                  <template #default="{ row }">
+                    <span v-if="row.bundle_id && row.quantity">
+                      ¥{{ (getBundlePrice(row.bundle_id) * row.quantity).toFixed(2) }}
+                    </span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="100">
+                  <template #default="{ $index }">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      @click="removeBundleItem($index)"
+                      :disabled="form.bundle_items.length === 1"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                <el-button type="primary" @click="addBundleItem">
+                  添加套餐
+                </el-button>
+                <span class="hint" v-if="availableBundles.length === 0">
+                  暂无可用套餐，请先在套餐管理中创建
+                </span>
+              </div>
+
+              <div class="bundle-detail" v-if="selectedBundleDetail" style="margin-top: 16px;">
+                <el-alert :title="selectedBundleDetail.name" type="info" :closable="false" show-icon>
+                  <template #default>
+                    <div class="bundle-detail-items">
+                      <div
+                        v-for="item in selectedBundleDetail.bundle_items"
+                        :key="item.id"
+                        class="bundle-detail-item"
+                      >
+                        <span class="detail-name">{{ item.product?.name }}</span>
+                        <span class="detail-qty">x{{ item.quantity }}</span>
+                        <span class="detail-price">¥{{ (item.product?.price || 0).toFixed(2) }}</span>
+                      </div>
+                    </div>
+                    <div class="bundle-detail-summary">
+                      <span>原价：¥{{ selectedBundleDetail.original_total.toFixed(2) }}</span>
+                      <el-tag type="danger" effect="light">
+                        省 ¥{{ selectedBundleDetail.discount_amount.toFixed(2) }}
+                      </el-tag>
+                    </div>
+                  </template>
+                </el-alert>
+              </div>
+            </el-form-item>
+          </el-tab-pane>
+        </el-tabs>
+
         <el-form-item label="订单金额">
           <div class="amount-section">
-            <div class="amount-row">
+            <div class="amount-row" v-if="productAmount > 0">
               <span class="amount-label">商品总额：</span>
-              <span class="amount-value">¥{{ totalAmount.toFixed(2) }}</span>
+              <span class="amount-value">¥{{ productAmount.toFixed(2) }}</span>
+            </div>
+            <div class="amount-row" v-if="bundleAmount > 0">
+              <span class="amount-label">套餐总额：</span>
+              <span class="amount-value">¥{{ bundleAmount.toFixed(2) }}</span>
+              <el-tag size="small" type="success" effect="light" style="margin-left: 8px;">
+                套餐优惠 ¥{{ bundleSavedAmount.toFixed(2) }}
+              </el-tag>
+            </div>
+            <div class="amount-row total">
+              <span class="amount-label">订单总额：</span>
+              <span class="amount-value total-value">¥{{ totalAmount.toFixed(2) }}</span>
             </div>
             <div class="amount-row">
               <span class="amount-label">优惠金额：</span>
@@ -142,7 +259,6 @@
           </div>
         </el-form-item>
 
-        <!-- 收货信息 -->
         <el-divider content-position="left">收货信息</el-divider>
         <el-form-item label="收货人" prop="shipping_name">
           <el-input v-model="form.shipping_name" placeholder="请输入收货人姓名" />
@@ -184,6 +300,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { orderApi } from '@/api/modules/order'
 import { productApi } from '@/api/modules/product'
+import { bundleApi } from '@/api/modules/bundle'
 import { memberApi } from '@/api/modules/member'
 import { authApi } from '@/api/modules/auth'
 
@@ -191,14 +308,23 @@ const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const products = ref([])
+const bundles = ref([])
 const memberInfo = ref(null)
 const usePoints = ref(false)
 const currentUser = ref(null)
+const activeTab = ref('products')
+const selectedBundleDetail = ref(null)
 
 const form = reactive({
   items: [
     {
       product_id: null,
+      quantity: 1,
+    },
+  ],
+  bundle_items: [
+    {
+      bundle_id: null,
       quantity: 1,
     },
   ],
@@ -215,17 +341,29 @@ const rules = {
   items: [
     {
       validator: (rule, value, callback) => {
-        if (!value || value.length === 0) {
-          callback(new Error('请至少添加一个商品'))
+        const hasValidProducts = value && value.some((i) => i.product_id && i.quantity >= 1)
+        const hasValidBundles = form.bundle_items && form.bundle_items.some((i) => i.bundle_id && i.quantity >= 1)
+        if (!hasValidProducts && !hasValidBundles) {
+          callback(new Error('请至少选择一个商品或套餐'))
           return
         }
         for (let i = 0; i < value.length; i++) {
-          if (!value[i].product_id) {
-            callback(new Error('请选择商品'))
+          if (value[i].product_id && (!value[i].quantity || value[i].quantity < 1)) {
+            callback(new Error('请输入有效的商品数量'))
             return
           }
-          if (!value[i].quantity || value[i].quantity < 1) {
-            callback(new Error('请输入有效的数量'))
+        }
+        callback()
+      },
+      trigger: 'change',
+    },
+  ],
+  bundle_items: [
+    {
+      validator: (rule, value, callback) => {
+        for (let i = 0; i < value.length; i++) {
+          if (value[i].bundle_id && (!value[i].quantity || value[i].quantity < 1)) {
+            callback(new Error('请输入有效的套餐数量'))
             return
           }
         }
@@ -256,7 +394,11 @@ const availableProducts = computed(() => {
   )
 })
 
-const totalAmount = computed(() => {
+const availableBundles = computed(() => {
+  return bundles.value.filter((b) => b.can_purchase)
+})
+
+const productAmount = computed(() => {
   let total = 0
   form.items.forEach((item) => {
     if (item.product_id && item.quantity) {
@@ -265,6 +407,32 @@ const totalAmount = computed(() => {
     }
   })
   return total
+})
+
+const bundleAmount = computed(() => {
+  let total = 0
+  form.bundle_items.forEach((item) => {
+    if (item.bundle_id && item.quantity) {
+      total += getBundlePrice(item.bundle_id) * item.quantity
+    }
+  })
+  return total
+})
+
+const bundleSavedAmount = computed(() => {
+  let saved = 0
+  form.bundle_items.forEach((item) => {
+    if (item.bundle_id && item.quantity) {
+      const original = getBundleOriginalTotal(item.bundle_id)
+      const price = getBundlePrice(item.bundle_id)
+      saved += (original - price) * item.quantity
+    }
+  })
+  return saved
+})
+
+const totalAmount = computed(() => {
+  return productAmount.value + bundleAmount.value
 })
 
 const maxUsablePoints = computed(() => {
@@ -291,6 +459,29 @@ const getProductStock = (productId) => {
   return product ? product.stock_quantity : 0
 }
 
+const getBundlePrice = (bundleId) => {
+  const bundle = bundles.value.find((b) => b.id === bundleId)
+  return bundle ? bundle.total_price : 0
+}
+
+const getBundleOriginalTotal = (bundleId) => {
+  const bundle = bundles.value.find((b) => b.id === bundleId)
+  return bundle ? bundle.original_total : 0
+}
+
+const getBundleMaxQty = (bundleId) => {
+  const bundle = bundles.value.find((b) => b.id === bundleId)
+  if (!bundle || !bundle.bundle_items) return 0
+  let maxQty = Infinity
+  bundle.bundle_items.forEach((item) => {
+    if (item.product && item.quantity > 0) {
+      const qty = Math.floor(item.product.stock_quantity / item.quantity)
+      maxQty = Math.min(maxQty, qty)
+    }
+  })
+  return maxQty === Infinity ? 0 : maxQty
+}
+
 const handleProductChange = (index) => {
   const item = form.items[index]
   if (item.product_id) {
@@ -299,6 +490,25 @@ const handleProductChange = (index) => {
       item.quantity = stock
       ElMessage.warning('数量不能超过库存')
     }
+  }
+}
+
+const handleBundleChange = async (index) => {
+  const item = form.bundle_items[index]
+  if (item.bundle_id) {
+    const maxQty = getBundleMaxQty(item.bundle_id)
+    if (item.quantity > maxQty && maxQty > 0) {
+      item.quantity = maxQty
+      ElMessage.warning('套餐数量不能超过子商品最低库存限制')
+    }
+    try {
+      const res = await bundleApi.getBundle(item.bundle_id)
+      selectedBundleDetail.value = res.data
+    } catch (e) {
+      selectedBundleDetail.value = null
+    }
+  } else {
+    selectedBundleDetail.value = null
   }
 }
 
@@ -314,6 +524,22 @@ const removeItem = (index) => {
     form.items.splice(index, 1)
   }
 }
+
+const addBundleItem = () => {
+  form.bundle_items.push({
+    bundle_id: null,
+    quantity: 1,
+  })
+}
+
+const removeBundleItem = (index) => {
+  if (form.bundle_items.length > 1) {
+    form.bundle_items.splice(index, 1)
+    selectedBundleDetail.value = null
+  }
+}
+
+const calculateTotal = () => {}
 
 const onDiscountChange = () => {
   if (usePoints.value) {
@@ -354,6 +580,15 @@ const fetchProducts = async () => {
   }
 }
 
+const fetchBundles = async () => {
+  try {
+    const res = await bundleApi.getBundles({ per_page: 1000, status: 'active' })
+    bundles.value = res.data
+  } catch (error) {
+    console.warn('获取套餐列表失败', error)
+  }
+}
+
 const fetchCurrentUser = async () => {
   try {
     const res = await authApi.getMe()
@@ -382,10 +617,18 @@ const handleSubmit = async () => {
     loading.value = true
     try {
       const orderData = {
-        items: form.items.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-        })),
+        items: form.items
+          .filter((i) => i.product_id)
+          .map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+          })),
+        bundle_items: form.bundle_items
+          .filter((i) => i.bundle_id)
+          .map((item) => ({
+            bundle_id: item.bundle_id,
+            quantity: item.quantity,
+          })),
         discount_amount: form.discount_amount || 0,
         points_used: usePoints.value ? form.points_used : 0,
         user_id: form.user_id,
@@ -408,6 +651,7 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   fetchProducts()
+  fetchBundles()
   fetchCurrentUser()
   fetchMemberInfo()
 })
@@ -441,6 +685,66 @@ onMounted(() => {
   color: #6b7280;
 }
 
+.bundle-price {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.bundle-original {
+  color: #9ca3af;
+  text-decoration: line-through;
+  font-size: 13px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #f59e0b;
+}
+
+.bundle-detail-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bundle-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+}
+
+.detail-name {
+  flex: 1;
+  color: #374151;
+}
+
+.detail-qty {
+  color: #6366f1;
+  font-weight: 500;
+}
+
+.detail-price {
+  color: #6b7280;
+  min-width: 70px;
+  text-align: right;
+}
+
+.bundle-detail-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e7eb;
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .amount-section {
   display: flex;
   flex-direction: column;
@@ -458,6 +762,10 @@ onMounted(() => {
   font-size: 15px;
 }
 
+.amount-row.total {
+  padding-top: 6px;
+}
+
 .amount-row.final {
   padding-top: 10px;
   border-top: 1px dashed #d0d5e0;
@@ -471,6 +779,11 @@ onMounted(() => {
 .amount-value {
   color: #1f2933;
   font-weight: 500;
+}
+
+.total-value {
+  color: #4f46e5;
+  font-size: 16px;
 }
 
 .amount-value.final-amount {

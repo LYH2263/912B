@@ -55,9 +55,12 @@ class OrderApiController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items' => 'nullable|array',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'bundle_items' => 'nullable|array',
+            'bundle_items.*.bundle_id' => 'required_with:bundle_items|exists:bundles,id',
+            'bundle_items.*.quantity' => 'required_with:bundle_items|integer|min:1',
             'discount_amount' => 'nullable|numeric|min:0',
             'points_used' => 'nullable|integer|min:0',
             'user_id' => 'nullable|integer|exists:users,id',

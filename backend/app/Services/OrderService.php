@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Bundle;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -25,8 +26,14 @@ class OrderService
     public function create(array $data): Order
     {
         return DB::transaction(function () use ($data) {
-            $items = $data['items'];
-            foreach ($items as $item) {
+            $productItems = $data['items'] ?? [];
+            $bundleItems = $data['bundle_items'] ?? [];
+
+            if (empty($productItems) && empty($bundleItems)) {
+                throw new \Exception('请至少选择一个商品或套餐');
+            }
+
+            foreach ($productItems as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 if (!$product->hasEnoughStock($item['quantity'])) {
                     throw new \Exception("商品 {$product->name} 库存不足，当前库存：{$product->stock_quantity}");
@@ -36,13 +43,30 @@ class OrderService
                 }
             }
 
+            foreach ($bundleItems as $item) {
+                $bundle = Bundle::with('bundleItems.product')->findOrFail($item['bundle_id']);
+                if ($bundle->status !== 'active') {
+                    throw new \Exception("套餐 {$bundle->name} 已下架，无法购买");
+                }
+                if (!$bundle->hasEnoughStock($item['quantity'])) {
+                    throw new \Exception("套餐 {$bundle->name} 库存不足，部分子商品库存不够");
+                }
+            }
+
             $orderNo = Order::generateOrderNo();
 
             $totalAmount = 0;
-            foreach ($items as $item) {
+
+            foreach ($productItems as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $pricing = $this->pricingEngine->calculate($product);
                 $subtotal = $pricing['final_price'] * $item['quantity'];
+                $totalAmount += $subtotal;
+            }
+
+            foreach ($bundleItems as $item) {
+                $bundle = Bundle::findOrFail($item['bundle_id']);
+                $subtotal = (float) $bundle->total_price * $item['quantity'];
                 $totalAmount += $subtotal;
             }
 
@@ -84,7 +108,7 @@ class OrderService
                 $this->memberService->usePoints($userId, $pointsUsed, $order);
             }
 
-            foreach ($items as $item) {
+            foreach ($productItems as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $pricing = $this->pricingEngine->calculate($product);
                 $subtotal = $pricing['final_price'] * $item['quantity'];
@@ -92,6 +116,9 @@ class OrderService
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
+                    'item_type' => 'product',
+                    'bundle_id' => null,
+                    'bundle_detail' => null,
                     'product_name' => $product->name,
                     'product_sku' => $product->sku,
                     'product_price' => $pricing['final_price'],
@@ -102,11 +129,49 @@ class OrderService
                 $this->inventoryService->decreaseStock($product, $item['quantity'], $order->id, '订单创建');
             }
 
+            foreach ($bundleItems as $item) {
+                $bundle = Bundle::with('bundleItems.product')->findOrFail($item['bundle_id']);
+                $qty = $item['quantity'];
+                $subtotal = (float) $bundle->total_price * $qty;
+
+                $bundleDetail = [];
+                foreach ($bundle->bundleItems as $bi) {
+                    if ($bi->product) {
+                        $bundleDetail[] = [
+                            'product_id' => $bi->product_id,
+                            'product_name' => $bi->product->name,
+                            'product_sku' => $bi->product->sku,
+                            'product_price' => (float) $bi->product->price,
+                            'quantity' => $bi->quantity,
+                        ];
+
+                        $decreaseQty = $bi->quantity * $qty;
+                        $this->inventoryService->decreaseStock($bi->product, $decreaseQty, $order->id, "套餐 {$bundle->name} 订单创建");
+                    }
+                }
+
+                $firstItem = $bundle->bundleItems->first();
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $firstItem?->product_id,
+                    'item_type' => 'bundle',
+                    'bundle_id' => $bundle->id,
+                    'bundle_detail' => $bundleDetail,
+                    'product_name' => $bundle->name,
+                    'product_sku' => $bundle->sku,
+                    'product_price' => (float) $bundle->total_price,
+                    'quantity' => $qty,
+                    'subtotal' => $subtotal,
+                ]);
+            }
+
             Log::info('订单创建成功', [
                 'order_id' => $order->id,
                 'order_no' => $order->order_no,
                 'points_used' => $pointsUsed,
                 'points_discount' => $pointsDiscountAmount,
+                'product_count' => count($productItems),
+                'bundle_count' => count($bundleItems),
             ]);
 
             return $order->load('orderItems');
@@ -169,8 +234,20 @@ class OrderService
     private function restoreInventory(Order $order): void
     {
         foreach ($order->orderItems as $item) {
-            $product = Product::findOrFail($item->product_id);
-            $this->inventoryService->increaseStock($product, $item->quantity, $order->id, '订单取消');
+            if ($item->item_type === 'bundle' && !empty($item->bundle_detail)) {
+                foreach ($item->bundle_detail as $detail) {
+                    $product = Product::find($detail['product_id']);
+                    if ($product) {
+                        $restoreQty = $detail['quantity'] * $item->quantity;
+                        $this->inventoryService->increaseStock($product, $restoreQty, $order->id, '订单取消-套餐归还');
+                    }
+                }
+            } else {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $this->inventoryService->increaseStock($product, $item->quantity, $order->id, '订单取消');
+                }
+            }
         }
     }
 }

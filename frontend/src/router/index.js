@@ -43,6 +43,21 @@ const routes = [
         component: () => import('../views/products/ProductForm.vue'),
       },
       {
+        path: 'bundles',
+        name: 'Bundles',
+        component: () => import('../views/bundles/BundleList.vue'),
+      },
+      {
+        path: 'bundles/create',
+        name: 'BundleCreate',
+        component: () => import('../views/bundles/BundleForm.vue'),
+      },
+      {
+        path: 'bundles/:id/edit',
+        name: 'BundleEdit',
+        component: () => import('../views/bundles/BundleForm.vue'),
+      },
+      {
         path: 'orders',
         name: 'Orders',
         component: () => import('../views/orders/OrderList.vue'),

@@ -22,6 +22,10 @@
             <el-icon><Goods /></el-icon>
             <span>商品管理</span>
           </el-menu-item>
+          <el-menu-item index="/bundles">
+            <el-icon><Gift /></el-icon>
+            <span>套餐管理</span>
+          </el-menu-item>
           <el-menu-item index="/orders">
             <el-icon><Document /></el-icon>
             <span>订单管理</span>
@@ -93,7 +97,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DataBoard, Goods, Document, Box, Timer, Medal, ShoppingCart, PriceTag } from '@element-plus/icons-vue'
+import { DataBoard, Goods, Gift, Document, Box, Timer, Medal, ShoppingCart, PriceTag } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

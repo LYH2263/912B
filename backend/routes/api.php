@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BundleApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\FlashSaleApiController;
 use App\Http\Controllers\Api\InventoryApiController;
@@ -26,6 +27,9 @@ Route::prefix('api')->group(function () {
 
         Route::apiResource('products', ProductApiController::class);
         Route::get('products/{product}/inventory', [ProductApiController::class, 'show']);
+
+        Route::apiResource('bundles', BundleApiController::class);
+        Route::put('bundles/{bundle}/toggle', [BundleApiController::class, 'toggleActive']);
 
         Route::apiResource('orders', OrderApiController::class);
         Route::put('orders/{order}/status', [OrderApiController::class, 'updateStatus']);
