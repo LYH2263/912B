@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
+use App\Services\OrderSplitMergeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,7 @@ class OrderApiController extends Controller
 {
     public function __construct(
         private OrderService $service,
+        private OrderSplitMergeService $splitMergeService,
         private \App\Repositories\OrderRepository $repository
     ) {
     }
@@ -88,5 +90,61 @@ class OrderApiController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }
+    }
+
+    public function split(Request $request, Order $order): JsonResponse
+    {
+        $validated = $request->validate([
+            'split_item_ids' => 'required|array|min:1',
+            'split_item_ids.*' => 'required|integer|exists:order_items,id',
+        ]);
+
+        try {
+            $result = $this->splitMergeService->split($order, $validated['split_item_ids']);
+            return response()->json([
+                'data' => [
+                    'order_1' => new OrderResource($result['order_1']),
+                    'order_2' => new OrderResource($result['order_2']),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function merge(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_id_1' => 'required|integer|exists:orders,id',
+            'order_id_2' => 'required|integer|exists:orders,id|different:order_id_1',
+        ]);
+
+        try {
+            $order1 = Order::findOrFail($validated['order_id_1']);
+            $order2 = Order::findOrFail($validated['order_id_2']);
+            $mergedOrder = $this->splitMergeService->merge($order1, $order2);
+            return response()->json(['data' => new OrderResource($mergedOrder)], 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function mergeCandidates(Request $request): JsonResponse
+    {
+        $orderId = $request->get('order_id');
+        $order = Order::findOrFail($orderId);
+
+        if ($order->status !== 'pending') {
+            return response()->json(['data' => []]);
+        }
+
+        $candidates = Order::where('user_id', $order->user_id)
+            ->where('id', '!=', $order->id)
+            ->where('status', 'pending')
+            ->whereNotNull('user_id')
+            ->with('orderItems')
+            ->get();
+
+        return response()->json(['data' => OrderResource::collection($candidates)]);
     }
 }

@@ -18,6 +18,8 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'order_no' => $this->order_no,
             'user_id' => $this->user_id,
+            'source_order_id' => $this->source_order_id,
+            'split_merge_type' => $this->split_merge_type,
             'total_amount' => (float) $this->total_amount,
             'discount_amount' => (float) $this->discount_amount,
             'points_used' => (int) $this->points_used,

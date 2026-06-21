@@ -29,6 +29,9 @@ Route::prefix('api')->group(function () {
 
         Route::apiResource('orders', OrderApiController::class);
         Route::put('orders/{order}/status', [OrderApiController::class, 'updateStatus']);
+        Route::post('orders/{order}/split', [OrderApiController::class, 'split']);
+        Route::post('orders/merge', [OrderApiController::class, 'merge']);
+        Route::get('orders/merge-candidates', [OrderApiController::class, 'mergeCandidates']);
         Route::get('orders/statistics', [OrderApiController::class, 'index']);
 
         Route::get('inventory', [InventoryApiController::class, 'index']);

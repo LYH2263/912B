@@ -14,6 +14,8 @@ class Order extends Model
     protected $fillable = [
         'order_no',
         'user_id',
+        'source_order_id',
+        'split_merge_type',
         'total_amount',
         'discount_amount',
         'points_used',
@@ -48,6 +50,16 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function sourceOrder(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'source_order_id');
+    }
+
+    public function splitMergedOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'source_order_id');
     }
 
     /**
