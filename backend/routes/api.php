@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InventoryApiController;
 use App\Http\Controllers\Api\MemberApiController;
 use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\ProductApiController;
+use App\Http\Controllers\Api\PurchaseOrderApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,5 +45,9 @@ Route::prefix('api')->group(function () {
         Route::get('member', [MemberApiController::class, 'me']);
         Route::get('member/point-logs', [MemberApiController::class, 'pointLogs']);
         Route::post('member/calculate-discount', [MemberApiController::class, 'calculateDiscount']);
+
+        Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
+        Route::put('purchase-orders/{purchaseOrder}/submit', [PurchaseOrderApiController::class, 'submit']);
+        Route::post('purchase-orders/{purchaseOrder}/stock-in', [PurchaseOrderApiController::class, 'stockIn']);
     });
 });

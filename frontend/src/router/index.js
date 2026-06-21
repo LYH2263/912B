@@ -87,6 +87,26 @@ const routes = [
         name: 'PointLogs',
         component: () => import('../views/member/PointLogList.vue'),
       },
+      {
+        path: 'purchase-orders',
+        name: 'PurchaseOrders',
+        component: () => import('../views/purchaseOrder/PurchaseOrderList.vue'),
+      },
+      {
+        path: 'purchase-orders/create',
+        name: 'PurchaseOrderCreate',
+        component: () => import('../views/purchaseOrder/PurchaseOrderForm.vue'),
+      },
+      {
+        path: 'purchase-orders/:id/edit',
+        name: 'PurchaseOrderEdit',
+        component: () => import('../views/purchaseOrder/PurchaseOrderForm.vue'),
+      },
+      {
+        path: 'purchase-orders/:id/stock-in',
+        name: 'PurchaseOrderStockIn',
+        component: () => import('../views/purchaseOrder/PurchaseOrderStockIn.vue'),
+      },
     ],
   },
 ]

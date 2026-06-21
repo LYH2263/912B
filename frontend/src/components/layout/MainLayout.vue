@@ -38,6 +38,10 @@
             <el-icon><Medal /></el-icon>
             <span>积分流水</span>
           </el-menu-item>
+          <el-menu-item index="/purchase-orders">
+            <el-icon><ShoppingCart /></el-icon>
+            <span>采购管理</span>
+          </el-menu-item>
         </el-menu>
       </div>
       <div
@@ -85,7 +89,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { DataBoard, Goods, Document, Box, Timer, Medal } from '@element-plus/icons-vue'
+import { DataBoard, Goods, Document, Box, Timer, Medal, ShoppingCart } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
