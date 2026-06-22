@@ -9,7 +9,7 @@
 
     <el-card class="preset-card">
       <div class="preset-title">
-        <el-icon :size="18"><MagicSticks /></el-icon>
+        <el-icon :size="18"><MagicStick /></el-icon>
         <span>预设模板</span>
       </div>
       <div class="preset-list">
@@ -164,7 +164,7 @@ import {
   Download,
   RefreshLeft,
   DataLine,
-  MagicSticks,
+  MagicStick,
   DataAnalysis,
   Goods,
   TrendCharts,

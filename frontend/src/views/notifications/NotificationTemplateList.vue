@@ -142,7 +142,7 @@
         <el-form-item label="变量说明">
           <div class="variables-hint">
             <span v-for="(desc, key) in getVariablesHint(form.type)" :key="key" class="var-chip">
-              <code>{{ `{${key}}`</code> - {{ desc }}
+              <code>{{ '{' + key + '}' }}</code> - {{ desc }}
             </span>
           </div>
         </el-form-item>

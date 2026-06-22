@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('api')->group(function () {
+    Route::get('health', fn () => response()->json(['status' => 'ok']));
+
     Route::post('login', [AuthController::class, 'login']);
     
     Route::middleware('auth:sanctum')->group(function () {

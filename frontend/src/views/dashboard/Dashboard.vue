@@ -34,7 +34,7 @@
         </div>
         <div class="member-progress" v-else>
           <div class="progress-label top-level">
-            <el-icon :size="14"><Crown /></el-icon>
+            <el-icon :size="14"><GoldMedal /></el-icon>
             已达最高等级
           </div>
         </div>
@@ -65,7 +65,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Goods, Document, Box, Star, Crown, Medal, Trophy, ChatDotRound } from '@element-plus/icons-vue'
+import { Goods, Document, Box, Star, GoldMedal, Medal, Trophy, ChatDotRound } from '@element-plus/icons-vue'
 import { dashboardApi } from '@/api/modules/dashboard'
 
 const stats = ref([
@@ -82,7 +82,7 @@ const levelIcon = computed(() => {
   const map = {
     normal: Medal,
     silver: Trophy,
-    gold: Crown,
+    gold: GoldMedal,
   }
   return map[member.value.level] || Medal
 })

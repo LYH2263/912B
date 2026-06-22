@@ -38,9 +38,15 @@ services:
       - "8000:8000"
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
     networks:
       - ecommerce_network
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 360s
     environment:
       - DB_HOST=db
       - DB_PORT=3306
@@ -72,7 +78,8 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - ecommerce_network
 

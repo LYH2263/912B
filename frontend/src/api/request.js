@@ -46,6 +46,10 @@ request.interceptors.response.use(
         case 500:
           ElMessage.error('服务器错误')
           break
+        case 502:
+        case 503:
+          ElMessage.error('后端服务尚未就绪，请稍后重试')
+          break
         default:
           ElMessage.error(data.message || '请求失败')
       }

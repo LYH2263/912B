@@ -99,7 +99,7 @@
           <template #default="{ row }">
             <el-progress
               :percentage="row.pass_rate"
-              :color="row.pass_rate >= 95 ? '#67c23a' : row.pass_rate >= 80 ? '#e6a23c' : '#f56c6c"
+              :color="row.pass_rate >= 95 ? '#67c23a' : row.pass_rate >= 80 ? '#e6a23c' : '#f56c6c'"
               :stroke-width="8"
             />
           </template>
